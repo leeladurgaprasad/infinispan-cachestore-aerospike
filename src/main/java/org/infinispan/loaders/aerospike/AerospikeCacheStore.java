@@ -34,16 +34,12 @@ import java.util.Set;
 import static org.infinispan.loaders.aerospike.AerospikeCacheStoreConfig.AEROSPIKE_MASTER_BIN_NAME;
 
 /**
- *
  * @author Leeladurga Prasad Gunti
  */
 @CacheLoaderMetadata(configurationClass = AerospikeCacheStoreConfig.class)
 public class AerospikeCacheStore extends AbstractCacheStore {
 
-    private static final String ENTRY_KEY_PREFIX = "entry_";
-    private static final String ENTRY_COLUMN_NAME = "entry";
-    private static final String EXPIRATION_KEY = "expiration";
-    private static final int SLICE_SIZE = 100;
+
     private static final Log log = LogFactory.getLog(AerospikeCacheStore.class, Log.class);
     private static final boolean trace = log.isTraceEnabled();
     private static final boolean debug = log.isDebugEnabled();
@@ -66,7 +62,7 @@ public class AerospikeCacheStore extends AbstractCacheStore {
     public void init(CacheLoaderConfig clc, Cache<?, ?> cache, StreamingMarshaller m)
             throws CacheLoaderException {
 
-        if(debug) {
+        if (debug) {
             log.debug("Start :: init");
         }
 
@@ -75,7 +71,7 @@ public class AerospikeCacheStore extends AbstractCacheStore {
         this.config = (AerospikeCacheStoreConfig) clc;
         poolProperties = config.getPoolProperties();
 
-        if(debug) {
+        if (debug) {
             log.debug("End :: init");
         }
     }
@@ -83,7 +79,7 @@ public class AerospikeCacheStore extends AbstractCacheStore {
     @Override
     public void start() throws CacheLoaderException {
 
-        if(debug) {
+        if (debug) {
             log.debug("Starting Aerospike..");
         }
 
@@ -91,9 +87,9 @@ public class AerospikeCacheStore extends AbstractCacheStore {
 
             ClientPolicy policy = new ClientPolicy();
             policy.maxThreads = 50;
-            if(null == aerospikeClient) {
+            if (null == aerospikeClient) {
                 synchronized (AerospikeCacheStore.class) {
-                    if(null == aerospikeClient) {
+                    if (null == aerospikeClient) {
                         aerospikeClient = new AerospikeClient(policy, poolProperties.getHost(), poolProperties.getPort());
                     }
                 }
@@ -104,12 +100,12 @@ public class AerospikeCacheStore extends AbstractCacheStore {
             throw new ConfigurationException(e);
         }
 
-        if(debug) {
+        if (debug) {
             log.debug("cleaning up expired entries...");
         }
         purgeInternal();
 
-        if(debug) {
+        if (debug) {
             log.debug("Started Cache.");
         }
         super.start();
@@ -118,27 +114,26 @@ public class AerospikeCacheStore extends AbstractCacheStore {
     @Override
     public InternalCacheEntry load(Object key) throws CacheLoaderException {
 
-        System.out.println("load :: key "+key);
+        System.out.println("load :: key " + key);
 
-        if(debug) {
-            log.debug("load :: key "+key);
+        if (debug) {
+            log.debug("load :: key " + key);
         }
         Object masterObj = null;
 
         try {
-            // Aerospike load
             Key sessionIdKey = null;
             Record sessionRecord = null;
             InternalCacheEntry ice = null;
             Map<String, Object> sessionMap = new Hashtable<String, Object>();
-            if(null != aerospikeClient) {
+            if (null != aerospikeClient) {
                 sessionIdKey = new Key(poolProperties.getNameSpace(), poolProperties.getSetName(), key.toString());
                 sessionRecord = aerospikeClient.get(null, sessionIdKey);
-                if(null != sessionRecord) {
-                    System.out.println("got records from Aerospike size : "+sessionRecord.bins.size());
+                if (null != sessionRecord) {
+                    System.out.println("got records from Aerospike size : " + sessionRecord.bins.size());
                     sessionMap = sessionRecord.bins;
                     masterObj = sessionMap.get(AEROSPIKE_MASTER_BIN_NAME);
-                    if(null != masterObj) {
+                    if (null != masterObj) {
                         ice = unmarshall(masterObj, key);
 
                         if (ice != null && ice.isExpired(System.currentTimeMillis())) {
@@ -147,18 +142,18 @@ public class AerospikeCacheStore extends AbstractCacheStore {
                         }
                     }
                 } else {
-                    if(debug) {
-                        log.debug("No recodes found with key : "+ key.toString());
+                    if (debug) {
+                        log.debug("No recodes found with key : " + key.toString());
                     }
-                    System.out.println("No recodes found with key : "+ key.toString());
+                    System.out.println("No recodes found with key : " + key.toString());
                 }
             }
 
             return ice;
 
         } catch (AerospikeException e) {
-            log.error("Exception occurred getting data from Aerospike :  "+e.getMessage());
-            System.out.println("Exception occurred getting data from Aerospike :  "+e.getMessage());
+            log.error("Exception occurred getting data from Aerospike :  " + e.getMessage());
+            System.out.println("Exception occurred getting data from Aerospike :  " + e.getMessage());
             //throw new CacheLoaderException(e);
             return null;
         } catch (Exception e) {
@@ -206,10 +201,6 @@ public class AerospikeCacheStore extends AbstractCacheStore {
         return null;
     }
 
-    /**
-     * Closes all databases, ignoring exceptions, and nulls references to all database related
-     * information.
-     */
     @Override
     public void stop() throws CacheLoaderException {
         super.stop();
@@ -240,7 +231,7 @@ public class AerospikeCacheStore extends AbstractCacheStore {
 
     @Override
     public void store(InternalCacheEntry entry) throws CacheLoaderException {
-        System.out.println("Store entry :  "+entry);
+        System.out.println("Store entry :  " + entry);
         try {
             store0(entry);
         } catch (Exception e) {
@@ -251,8 +242,8 @@ public class AerospikeCacheStore extends AbstractCacheStore {
     private void store0(InternalCacheEntry entry) throws IOException,
             UnsupportedKeyTypeException {
         Object key = entry.getKey();
-        if(debug) {
-            log.debug("Store key :: "+ key.toString());
+        if (debug) {
+            log.debug("Store key :: " + key.toString());
         }
 
         Key sessionIdKey = null;
@@ -267,14 +258,14 @@ public class AerospikeCacheStore extends AbstractCacheStore {
                 Bin maserBin = new Bin(AEROSPIKE_MASTER_BIN_NAME, bytes);
                 aerospikeClient.put(writePolicy, sessionIdKey, maserBin);
 
-                if(debug) {
-                    log.debug("Entry Saved in to Aerospike with key : "+ key);
+                if (debug) {
+                    log.debug("Entry Saved in to Aerospike with key : " + key);
                 }
                 System.out.println("Entry Saved in to Aerospike..!!!");
             }
         } catch (Exception e) {
             log.error("Unable to save data into Aerospike", e);
-            System.out.println("Unable to save data into Aerospike"+e.getMessage());
+            System.out.println("Unable to save data into Aerospike" + e.getMessage());
         }
 
     }
@@ -331,11 +322,11 @@ public class AerospikeCacheStore extends AbstractCacheStore {
      */
     @Override
     protected void purgeInternal() throws CacheLoaderException {
-        if(debug) {
+        if (debug) {
             log.debug("purgeInternal");
         }
         System.out.println("purgeInternal");
-
+        //TODO
 
     }
 
@@ -352,6 +343,7 @@ public class AerospikeCacheStore extends AbstractCacheStore {
                         clear();
                         break;
                     case REMOVE:
+                        //TODO
                         break;
                     default:
                         throw new AssertionError();
