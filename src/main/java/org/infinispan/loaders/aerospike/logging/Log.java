@@ -12,7 +12,10 @@ import static org.jboss.logging.Logger.Level.ERROR;
  * @author Leeladurga Prasad Gunti
  */
 
-@MessageLogger(projectCode = "ISPN")
+@MessageLogger(projectCode = "ppp")
 public interface Log extends org.infinispan.util.logging.Log {
 
+    @LogMessage(level = ERROR)
+    @Message(value = "Error removing key %s", id = 72000)
+    void errorRemovingKey(Object key, @Cause Exception e);
 }
